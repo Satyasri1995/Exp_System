@@ -1,7 +1,5 @@
-
 import * as THREE from "https://unpkg.com/three/build/three.module";
 import { OrbitControls } from "https://unpkg.com/three/examples/jsm/controls/OrbitControls";
-
 
 const scene = new THREE.Scene();
 const camera = new THREE.PerspectiveCamera(
@@ -15,12 +13,118 @@ const renderer = new THREE.WebGLRenderer();
 const meshes = {};
 const raycaster = new THREE.Raycaster();
 const mouse = new THREE.Vector2();
+const systemGroup = new THREE.Group();
+const systemJson = [
+  {
+    name: "Tata Consultancy Services",
+    radius: 6,
+    color: "Yellow",
+    children: [
+      {
+        name: "Project1",
+        radius: 2,
+        color: "green",
+        orbitRadius: 20,
+        children:[
+          {
+            name:'Tech1',
+            color:"white"
+          },
+          {
+            name:'Tech1',
+            color:"white"
+          },
+          {
+            name:'Tech1',
+            color:"white"
+          },
+          {
+            name:'Tech1',
+            color:"white"
+          }
+        ]
+      },
+      {
+        name: "Project2",
+        radius: 3,
+        color: "limegreen",
+        orbitRadius: 50,
+        children:[
+          {
+            name:'Tech1',
+            color:"white"
+          },
+          {
+            name:'Tech1',
+            color:"white"
+          },
+          {
+            name:'Tech1',
+            color:"white"
+          },
+          {
+            name:'Tech1',
+            color:"white"
+          }
+        ]
+      },
+      {
+        name: "Project3",
+        radius: 4,
+        color: "skyblue",
+        orbitRadius: 90,
+        children:[
+          {
+            name:'Tech1',
+            color:"white"
+          },
+          {
+            name:'Tech1',
+            color:"white"
+          },
+          {
+            name:'Tech1',
+            color:"white"
+          },
+          {
+            name:'Tech1',
+            color:"white"
+          }
+        ]
+      },
+      {
+        name: "Project4",
+        radius: 2,
+        color: "orange",
+        orbitRadius: 125,
+        children:[
+          {
+            name:'Tech1',
+            color:"white"
+          },
+          {
+            name:'Tech1',
+            color:"white"
+          },
+          {
+            name:'Tech1',
+            color:"white"
+          },
+          {
+            name:'Tech1',
+            color:"white"
+          }
+        ]
+      },
+    ],
+  },
+];
 
 renderer.setSize(window.innerWidth, window.innerHeight);
 document.body.appendChild(renderer.domElement);
 const controls = new OrbitControls(camera, renderer.domElement);
 
-camera.position.set(0, 0, 200);
+camera.position.set(0, 0, 220);
 camera.lookAt(0, 0, 0);
 
 controls.update();
@@ -44,81 +148,96 @@ function addStars() {
   scene.add(meshes.star);
 }
 
-function animateStarsAndSystem() {
+function animateSystem() {
   const elapsedTime = clock.getElapsedTime();
   meshes.star.rotation.y = -0.1 * elapsedTime;
-  meshes.systemGroup.rotation.y = -0.1 * elapsedTime;
+  systemGroup.rotation.y = -0.1 * elapsedTime;
 }
 
-function addSun(sunRadius = 5, color = "yellow") {
-  const sunGeo = new THREE.SphereGeometry(sunRadius, 32, 32);
-  const sunMat = new THREE.MeshBasicMaterial({ color: color });
-  const sunMesh = new THREE.Mesh(sunGeo, sunMat);
-  scene.add(sunMesh);
+function onClickOnSphere() {
+  console.log(this.name);
 }
 
-function addRings(
-  orbitRadius = 10,
-  orbitColor = "orange",
-  planetRadius = 1,
-  planetColor = "blue",
-  planetName = "Planet"
+function makeSphere(radius = 5, color = "yellow", name) {
+  const sphereGeo = new THREE.SphereGeometry(radius, 32, 32);
+  const sphereMaterial = new THREE.MeshBasicMaterial({ color: color });
+  const sphere = new THREE.Mesh(sphereGeo, sphereMaterial);
+  sphere.name = name;
+  sphere.callback = onClickOnSphere;
+  return sphere;
+}
+
+function drawSystem() {
+  systemJson.forEach((item) => {
+    const sphere = makeSphere(item.radius, item.color, item.name);
+    systemGroup.add(sphere);
+    item.children.forEach((subitem, i) => {
+      const orbit = buildRing(subitem.orbitRadius, true, 200);
+      orbit.position.set(
+        sphere.position.x,
+        sphere.position.y,
+        sphere.position.z
+      );
+      const innerSphere = makeSphere(
+        subitem.radius,
+        subitem.color,
+        subitem.name
+      );
+      innerSphere.position.set(
+        orbit.position.x + subitem.orbitRadius,
+        orbit.position.y,
+        orbit.position.z
+      );
+      subitem.children.forEach((techsubitem,index)=>{
+        const innerOrbit = buildRing(subitem.radius*(index+1)*1.2,true,200)
+        innerOrbit.position.set(
+          innerSphere.position.x-subitem.orbitRadius,
+          innerSphere.position.y,
+          innerSphere.position.z
+        );
+        const techSphere = makeSphere(
+          0.4,
+          techsubitem.color,
+          techsubitem.name
+        );
+        techSphere.position.set(
+          innerOrbit.position.x - subitem.radius*(index+1)*1.2,
+          innerOrbit.position.y,
+          innerOrbit.position.z
+        );
+        innerOrbit.isOrbit=true;
+        innerOrbit.add(techSphere);
+        innerOrbit.rotation.y = Math.random() * 360;
+        innerOrbit.rotationSpeed=(subitem.children.length-i);
+        innerOrbit.clockwise=i%2==0;
+        innerSphere.add(innerOrbit);
+      })
+      orbit.add(innerSphere);
+      orbit.rotation.y = Math.random() * 360;
+      orbit.isOrbit = true;
+      orbit.rotationSpeed=(item.children.length-i);
+      orbit.clockwise=i%2==0;
+      sphere.add(orbit);
+    });
+    systemGroup.add(sphere);
+  });
+  systemGroup.rotation.x = 90;
+  scene.add(systemGroup);
+}
+
+function buildRing(
+  orbitRadius,
+  orbitVisible = true,
+  resolution = 200,
+  orbitColor
 ) {
-  if (meshes.systemGroup) {
-    const circleCurve = new THREE.EllipseCurve(
-      0,
-      0,
-      orbitRadius,
-      orbitRadius,
-      0, //startAngle=0
-      2 * Math.PI, //endAngle= 2 * Math.PI
-      // 0, //endAngle= 2 * Math.PI
-      false,
-      0
-    );
-    const circlePoints = circleCurve.getPoints(200);
-    const cg1 = new THREE.BufferGeometry().setFromPoints(circlePoints);
-    const cma1 = new THREE.LineBasicMaterial({ color: orbitColor });
-    const orbit = new THREE.Line(cg1, cma1);
-    orbit.rotation.x = 90;
-    // orbit.rotation.y = Math.random() * 360;
-    const spg = new THREE.SphereGeometry(
-      planetRadius,
-      planetRadius * 10,
-      planetRadius * 10
-    );
-    const spma = new THREE.MeshBasicMaterial({ color: planetColor });
-    const spme = new THREE.Mesh(spg, spma);
-    spme.callback = zoomToCamera;
-    spme.planetColor = planetColor;
-    spme.name = planetName;
-    const planetWithSatelites = buildSatelites(spme,planetRadius,planetColor,orbitColor);
-    orbit.add(planetWithSatelites);
-    spme.position.x = orbitRadius;
-    meshes.rings = [...(meshes.rings ? meshes.rings : []), orbit];
-    meshes.systemGroup.add(meshes.rings[meshes.rings.length - 1]);
-  } else {
-    meshes.systemGroup = new THREE.Group();
-    scene.add(meshes.systemGroup);
-    addRings(orbitRadius, orbitColor, planetRadius, planetColor);
-  }
-}
-
-function zoomToCamera() {
-  this.material.color = new THREE.Color("red");
-  setTimeout(() => {
-    this.material.color = new THREE.Color(this.planetColor);
-  }, 1000);
-}
-
-function buildRing(orbitRadius,orbitVisible=true,resolution=200,orbitColor){
   const ringCurve = new THREE.EllipseCurve(
     0,
     0,
     orbitRadius,
     orbitRadius,
     0, //startAngle=0
-    orbitVisible?2 * Math.PI:0, //endAngle= 2 * Math.PI
+    orbitVisible ? 2 * Math.PI : 0, //endAngle= 2 * Math.PI
     false,
     0
   );
@@ -129,30 +248,14 @@ function buildRing(orbitRadius,orbitVisible=true,resolution=200,orbitColor){
   return ring;
 }
 
-function buildSatelites(planet,planetRadius,color,orbitColor){
-  for(let i=1;i<5;i++){
-    const ring = buildRing(planetRadius*2*i,false,200);
-    ring.position.set(planet.position.x,planet.position.y,planet.position.z);
-    const spGeo = new THREE.SphereGeometry(1,32,32);
-    const spMat = new THREE.MeshBasicMaterial({color:color});
-    const mesh = new THREE.Mesh(spGeo,spMat);
-    mesh.position.set(planet.position.x+(planetRadius*2*i),planet.position.y,planet.position.z);
-    ring.add(mesh);
-    ring.rotation.y=Math.random()*360;
-    meshes.rings = [...(meshes.rings ? meshes.rings : []), ring];
-    planet.add(ring);
-  }
-  return planet;
-}
-
 function animateRings() {
   const elapsedTime = clock.getElapsedTime();
-  meshes.rings.forEach((__ring, index) => {
-    meshes.rings[index].rotation.z =
-      (index % 2 == 0 ? -1 : 1) *
-      0.01 *
-      (meshes.rings.length - index) *
-      elapsedTime;
+  systemGroup.traverse((object) => {
+    if (object.isOrbit) {
+      object.rotation.z =
+        object.clockwise?-0.1:0.1 * object.rotationSpeed *
+        elapsedTime;
+    }
   });
 }
 
@@ -173,12 +276,7 @@ function onDocumentMouseDown(event) {
 }
 
 addStars();
-addRings(25, "gray", 2, "limegreen", "1st");
-addRings(50, "gray", 3, "green", "2nd");
-addRings(80, "gray", 4, "skyblue", "3rd");
-// addRings(120, "gray", 2.5, "purple", "4th");
-
-addSun(5, "yellow");
+drawSystem();
 
 window.addEventListener("mousedown", onDocumentMouseDown);
 
@@ -189,7 +287,7 @@ window.addEventListener("resize", () => {
 });
 
 function animate() {
-  animateStarsAndSystem();
+  animateSystem();
   animateRings();
   controls.update();
   requestAnimationFrame(animate);
