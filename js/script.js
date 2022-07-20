@@ -2,7 +2,7 @@ import * as THREE from "https://unpkg.com/three/build/three.module";
 import { OrbitControls } from "https://unpkg.com/three/examples/jsm/controls/OrbitControls";
 
 const scene = new THREE.Scene();
-const camera = new THREE.PerspectiveCamera(
+var camera = new THREE.PerspectiveCamera(
   75,
   window.innerWidth / window.innerHeight,
   0.1,
@@ -14,6 +14,8 @@ const meshes = {};
 const raycaster = new THREE.Raycaster();
 const mouse = new THREE.Vector2();
 const systemGroup = new THREE.Group();
+let cameraTarget = null;
+let cameraPosition = new THREE.Vector3(0, 0, 220);
 const systemJson = [
   {
     name: "Tata Consultancy Services",
@@ -25,96 +27,96 @@ const systemJson = [
         radius: 2,
         color: "green",
         orbitRadius: 20,
-        children:[
+        children: [
           {
-            name:'Tech1',
-            color:"white"
+            name: "Tech1",
+            color: "white",
           },
           {
-            name:'Tech1',
-            color:"white"
+            name: "Tech1",
+            color: "white",
           },
           {
-            name:'Tech1',
-            color:"white"
+            name: "Tech1",
+            color: "white",
           },
           {
-            name:'Tech1',
-            color:"white"
-          }
-        ]
+            name: "Tech1",
+            color: "white",
+          },
+        ],
       },
       {
         name: "Project2",
         radius: 3,
         color: "limegreen",
         orbitRadius: 50,
-        children:[
+        children: [
           {
-            name:'Tech1',
-            color:"white"
+            name: "Tech1",
+            color: "white",
           },
           {
-            name:'Tech1',
-            color:"white"
+            name: "Tech1",
+            color: "white",
           },
           {
-            name:'Tech1',
-            color:"white"
+            name: "Tech1",
+            color: "white",
           },
           {
-            name:'Tech1',
-            color:"white"
-          }
-        ]
+            name: "Tech1",
+            color: "white",
+          },
+        ],
       },
       {
         name: "Project3",
         radius: 4,
         color: "skyblue",
         orbitRadius: 90,
-        children:[
+        children: [
           {
-            name:'Tech1',
-            color:"white"
+            name: "Tech1",
+            color: "white",
           },
           {
-            name:'Tech1',
-            color:"white"
+            name: "Tech1",
+            color: "white",
           },
           {
-            name:'Tech1',
-            color:"white"
+            name: "Tech1",
+            color: "white",
           },
           {
-            name:'Tech1',
-            color:"white"
-          }
-        ]
+            name: "Tech1",
+            color: "white",
+          },
+        ],
       },
       {
         name: "Project4",
         radius: 2,
         color: "orange",
         orbitRadius: 125,
-        children:[
+        children: [
           {
-            name:'Tech1',
-            color:"white"
+            name: "Tech1",
+            color: "white",
           },
           {
-            name:'Tech1',
-            color:"white"
+            name: "Tech1",
+            color: "white",
           },
           {
-            name:'Tech1',
-            color:"white"
+            name: "Tech1",
+            color: "white",
           },
           {
-            name:'Tech1',
-            color:"white"
-          }
-        ]
+            name: "Tech1",
+            color: "white",
+          },
+        ],
       },
     ],
   },
@@ -123,6 +125,10 @@ const systemJson = [
 renderer.setSize(window.innerWidth, window.innerHeight);
 document.body.appendChild(renderer.domElement);
 const controls = new OrbitControls(camera, renderer.domElement);
+controls.zoomSpeed=0.5;
+controls.autoRotateSpeed=0.5;
+controls.autoRotate=true;
+controls.maxDistance=220;
 
 camera.position.set(0, 0, 220);
 camera.lookAt(0, 0, 0);
@@ -149,13 +155,19 @@ function addStars() {
 }
 
 function animateSystem() {
-  const elapsedTime = clock.getElapsedTime();
-  meshes.star.rotation.y = -0.1 * elapsedTime;
-  systemGroup.rotation.y = -0.1 * elapsedTime;
+  // const elapsedTime = clock.getElapsedTime();
+  // meshes.star.rotation.y = -0.1 * elapsedTime;
+  // systemGroup.rotation.y = -0.1 * elapsedTime;
 }
 
 function onClickOnSphere() {
-  console.log(this.name);
+  cameraTarget = this;
+  controls.maxDistance=10;
+  this.material.color = new THREE.Color("red");
+  setTimeout(() => {
+    this.material.color = new THREE.Color(this.color);
+    controls.maxDistance=220;
+  }, 1000);
 }
 
 function makeSphere(radius = 5, color = "yellow", name) {
@@ -163,7 +175,7 @@ function makeSphere(radius = 5, color = "yellow", name) {
   const sphereMaterial = new THREE.MeshBasicMaterial({ color: color });
   const sphere = new THREE.Mesh(sphereGeo, sphereMaterial);
   sphere.name = name;
-  sphere.callback = onClickOnSphere;
+  sphere.onMouseClick = onClickOnSphere;
   return sphere;
 }
 
@@ -188,49 +200,49 @@ function drawSystem() {
         orbit.position.y,
         orbit.position.z
       );
-      subitem.children.forEach((techsubitem,index)=>{
-        const innerOrbit = buildRing(subitem.radius*(index+1)*1.2,true,200)
+      subitem.children.forEach((techsubitem, index) => {
+        const innerOrbit = buildRing(
+          subitem.radius * (index + 1) * 1.5,
+          true,
+          200
+        );
         innerOrbit.position.set(
-          innerSphere.position.x-subitem.orbitRadius,
+          innerSphere.position.x - subitem.orbitRadius,
           innerSphere.position.y,
           innerSphere.position.z
         );
-        const techSphere = makeSphere(
-          0.4,
-          techsubitem.color,
-          techsubitem.name
-        );
+        const techSphere = makeSphere(0.5, techsubitem.color, techsubitem.name);
         techSphere.position.set(
-          innerOrbit.position.x - subitem.radius*(index+1)*1.2,
+          innerOrbit.position.x - subitem.radius * (index + 1) * 1.5,
           innerOrbit.position.y,
           innerOrbit.position.z
         );
-        innerOrbit.isOrbit=true;
+        innerOrbit.isOrbit = true;
         innerOrbit.add(techSphere);
         innerOrbit.rotation.y = Math.random() * 360;
-        innerOrbit.rotationSpeed=(subitem.children.length-i);
-        innerOrbit.clockwise=i%2==0;
+        innerOrbit.rotationSpeed = subitem.children.length - i;
+        innerOrbit.clockwise = i % 2 == 0;
         innerSphere.add(innerOrbit);
-      })
+      });
+
+      innerSphere.color = subitem.color;
+      innerSphere.name = subitem.name;
       orbit.add(innerSphere);
       orbit.rotation.y = Math.random() * 360;
       orbit.isOrbit = true;
-      orbit.rotationSpeed=(item.children.length-i);
-      orbit.clockwise=i%2==0;
+      orbit.rotationSpeed = item.children.length - i;
+      orbit.clockwise = i % 2 === 0;
       sphere.add(orbit);
     });
+    sphere.name = item.name;
+    sphere.color = item.color;
     systemGroup.add(sphere);
   });
   systemGroup.rotation.x = 90;
   scene.add(systemGroup);
 }
 
-function buildRing(
-  orbitRadius,
-  orbitVisible = true,
-  resolution = 200,
-  orbitColor
-) {
+function buildRing(orbitRadius, orbitVisible = true, resolution = 200) {
   const ringCurve = new THREE.EllipseCurve(
     0,
     0,
@@ -253,11 +265,23 @@ function animateRings() {
   systemGroup.traverse((object) => {
     if (object.isOrbit) {
       object.rotation.z =
-        object.clockwise?-0.1:0.1 * object.rotationSpeed *
-        elapsedTime;
+        (object.clockwise ? -0.1 : 0.1) * object.rotationSpeed * elapsedTime;
     }
   });
 }
+
+function focusCameraToTarget() {
+  if (cameraTarget) {
+    const camPosition = new THREE.Vector3();
+    camera.getWorldPosition(camPosition);
+    const camTargetPosition = new THREE.Vector3();
+    cameraTarget.getWorldPosition(camTargetPosition);
+    controls.target = camTargetPosition;
+    controls.update();
+  }
+}
+
+
 
 function onDocumentMouseDown(event) {
   event.preventDefault();
@@ -267,13 +291,16 @@ function onDocumentMouseDown(event) {
   let intersects = raycaster.intersectObjects(scene.children);
   if (intersects.length > 0) {
     let mesh = intersects.find(
-      (item) => typeof item.object.callback === "function"
+      (item) => typeof item.object.onMouseClick === "function"
     );
     if (mesh) {
-      mesh.object.callback();
+      mesh.object.onMouseClick();
     }
   }
 }
+
+
+
 
 addStars();
 drawSystem();
@@ -287,6 +314,7 @@ window.addEventListener("resize", () => {
 });
 
 function animate() {
+  focusCameraToTarget();
   animateSystem();
   animateRings();
   controls.update();
