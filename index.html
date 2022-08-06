@@ -5,15 +5,18 @@
     <meta http-equiv="X-UA-Compatible" content="IE=edge">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Document</title> 
+    <script async src="./js/lib/es-module-shim.js"></script>
     <script type="importmap">
         {
             "imports": {
-                "three": "https://unpkg.com/three@0.138.0/build/three.module.js",
-                "OrbitControls": "https://unpkg.com/three@0.138.0/examples/jsm/controls/OrbitControls.js"
+                "three": "./js/lib/three.js",
+                "OrbitControls": "./js/lib/OrbitControls.js",
+                "util":"./js/lib/util.js",
+                "fontLoader":"./js/lib/FontLoader.js",
+                "textGeometry":"./js/lib/TextGeometry.js"
             }
         }
-    </script> 
-    <!-- <script src="./node_modules/three/build/three.js"></script> -->
+    </script>
     <script type="module" src="./js/script.js"></script>
     <link rel="stylesheet" href="./css/main.css" >
 </head>

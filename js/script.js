@@ -1,5 +1,8 @@
-import * as THREE from "https://unpkg.com/three/build/three.module";
-import { OrbitControls } from "https://unpkg.com/three/examples/jsm/controls/OrbitControls";
+import * as THREE from "three";
+import { OrbitControls } from "OrbitControls";
+import { promisefy } from "util";
+import { FontLoader } from "fontLoader";
+import { TextGeometry } from "textGeometry";
 
 const scene = new THREE.Scene();
 var camera = new THREE.PerspectiveCamera(
@@ -14,19 +17,24 @@ const meshes = {};
 const raycaster = new THREE.Raycaster();
 const mouse = new THREE.Vector2();
 const systemGroup = new THREE.Group();
+// const fontLoader = promisefy(new FontLoader().load);
+let originTech;
+let spaceAge;
 let cameraTarget = null;
 let cameraPosition = new THREE.Vector3(0, 0, 220);
+let followZoomLevel=3;
+
 const systemJson = [
   {
-    name: "Tata Consultancy Services",
-    radius: 6,
+    name: "TCS",
+    radius: 15,
     color: "Yellow",
     children: [
       {
         name: "Project1",
         radius: 2,
         color: "green",
-        orbitRadius: 20,
+        orbitRadius: 30,
         children: [
           {
             name: "Tech1",
@@ -50,7 +58,7 @@ const systemJson = [
         name: "Project2",
         radius: 3,
         color: "limegreen",
-        orbitRadius: 50,
+        orbitRadius: 60,
         children: [
           {
             name: "Tech1",
@@ -125,10 +133,10 @@ const systemJson = [
 renderer.setSize(window.innerWidth, window.innerHeight);
 document.body.appendChild(renderer.domElement);
 const controls = new OrbitControls(camera, renderer.domElement);
-controls.zoomSpeed=0.5;
-controls.autoRotateSpeed=0.5;
-controls.autoRotate=true;
-controls.maxDistance=220;
+controls.zoomSpeed = 0.5;
+controls.autoRotateSpeed = 0.3;
+controls.autoRotate = true;
+controls.maxDistance = 220;
 
 camera.position.set(0, 0, 220);
 camera.lookAt(0, 0, 0);
@@ -154,35 +162,58 @@ function addStars() {
   scene.add(meshes.star);
 }
 
-function animateSystem() {
-  // const elapsedTime = clock.getElapsedTime();
-  // meshes.star.rotation.y = -0.1 * elapsedTime;
-  // systemGroup.rotation.y = -0.1 * elapsedTime;
-}
-
 function onClickOnSphere() {
   cameraTarget = this;
-  controls.maxDistance=10;
+  controls.maxDistance = 10 + this.geometry.parameters.radius;
+  // controls.minDistance = 0;
+  controls.update();
   this.material.color = new THREE.Color("red");
+  systemGroup.traverse((object) => {
+    if(object.isSphere) {
+      object.isSelectedSphere=false;
+    }
+  });
+  this.isSelectedSphere=true;
   setTimeout(() => {
     this.material.color = new THREE.Color(this.color);
-    controls.maxDistance=220;
+    controls.maxDistance = 220;
+    controls.update();
   }, 1000);
 }
 
 function makeSphere(radius = 5, color = "yellow", name) {
   const sphereGeo = new THREE.SphereGeometry(radius, 32, 32);
-  const sphereMaterial = new THREE.MeshBasicMaterial({ color: color });
+  const sphereMaterial = new THREE.MeshBasicMaterial({
+    color: color,
+  });
   const sphere = new THREE.Mesh(sphereGeo, sphereMaterial);
+  const sphereTitleGeometry = new TextGeometry(name, {
+    font: spaceAge,
+    size: radius / 2,
+    height: radius / 8,
+  });
+  const sphereTitleMaterial = new THREE.MeshBasicMaterial({
+    color: "white",
+  });
+  const sphereTitleMesh = new THREE.Mesh(
+    sphereTitleGeometry,
+    sphereTitleMaterial
+  );
+  sphereTitleMesh.rotation.x = -90;
+  sphereTitleMesh.position.y = -radius / 2;
+  sphereTitleMesh.position.x = -radius;
+  sphereTitleMesh.position.z = -radius;
+  sphere.add(sphereTitleMesh);
   sphere.name = name;
   sphere.onMouseClick = onClickOnSphere;
+  sphere.isSphere=true;
   return sphere;
 }
 
 function drawSystem() {
   systemJson.forEach((item) => {
     const sphere = makeSphere(item.radius, item.color, item.name);
-    systemGroup.add(sphere);
+    sphere.isStar=true;
     item.children.forEach((subitem, i) => {
       const orbit = buildRing(subitem.orbitRadius, true, 200);
       orbit.position.set(
@@ -219,7 +250,7 @@ function drawSystem() {
         );
         innerOrbit.isOrbit = true;
         innerOrbit.add(techSphere);
-        innerOrbit.rotation.y = Math.random() * 360;
+        innerOrbit.rotation.y =randomIntFromInterval(-20,20)
         innerOrbit.rotationSpeed = subitem.children.length - i;
         innerOrbit.clockwise = i % 2 == 0;
         innerSphere.add(innerOrbit);
@@ -228,7 +259,7 @@ function drawSystem() {
       innerSphere.color = subitem.color;
       innerSphere.name = subitem.name;
       orbit.add(innerSphere);
-      orbit.rotation.y = Math.random() * 360;
+      orbit.rotation.y =randomIntFromInterval(-20,20)
       orbit.isOrbit = true;
       orbit.rotationSpeed = item.children.length - i;
       orbit.clockwise = i % 2 === 0;
@@ -240,6 +271,10 @@ function drawSystem() {
   });
   systemGroup.rotation.x = 90;
   scene.add(systemGroup);
+}
+
+function randomIntFromInterval(min, max) { // min and max included 
+  return Math.floor(Math.random() * (max - min + 1) + min)
 }
 
 function buildRing(orbitRadius, orbitVisible = true, resolution = 200) {
@@ -266,6 +301,16 @@ function animateRings() {
     if (object.isOrbit) {
       object.rotation.z =
         (object.clockwise ? -0.1 : 0.1) * object.rotationSpeed * elapsedTime;
+    } else if(object.isSelectedSphere&&!object.isStar) {
+      let camPos = new THREE.Vector3();
+      let sSphere = new THREE.Vector3();
+      camera.getWorldPosition(camPos);
+      object.getWorldPosition(sSphere);
+      controls.maxDistance=Math.abs(camPos.length()-(camPos.length()-sSphere.length()))/followZoomLevel;
+      controls.update();
+    }else if(object.isStar){
+      controls.maxDistance=220;
+      // controls.minDistance=100;
     }
   });
 }
@@ -280,8 +325,6 @@ function focusCameraToTarget() {
     controls.update();
   }
 }
-
-
 
 function onDocumentMouseDown(event) {
   event.preventDefault();
@@ -299,11 +342,31 @@ function onDocumentMouseDown(event) {
   }
 }
 
+Promise.all([
+  new Promise((resolve, __reject) => {
+    new FontLoader().load(
+      "./assets/fonts/json/Origin Tech Demo_Regular.json",
+      (font) => {
+        resolve(font);
+      }
+    );
+  }),
+  new Promise((resolve, __reject) => {
+    new FontLoader().load("./assets/fonts/json/Roboto.json", (font) => {
+      resolve(font);
+    });
+  }),
+]).then((fonts) => {
+  originTech = fonts[0];
+  spaceAge = fonts[1];
+  addStars();
+  drawSystem();
+  animate();
+});
 
-
-
-addStars();
-drawSystem();
+// addStars();
+// drawSystem();
+// animate();
 
 window.addEventListener("mousedown", onDocumentMouseDown);
 
@@ -315,10 +378,8 @@ window.addEventListener("resize", () => {
 
 function animate() {
   focusCameraToTarget();
-  animateSystem();
   animateRings();
   controls.update();
   requestAnimationFrame(animate);
   renderer.render(scene, camera);
 }
-animate();
