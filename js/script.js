@@ -17,47 +17,46 @@ const meshes = {};
 const raycaster = new THREE.Raycaster();
 const mouse = new THREE.Vector2();
 const systemGroup = new THREE.Group();
-// const fontLoader = promisefy(new FontLoader().load);
+
 let originTech;
 let spaceAge;
 let cameraTarget = null;
-let cameraPosition = new THREE.Vector3(0, 0, 220);
-let followZoomLevel=3;
+var followZoomLevel = 3;
 
 const systemJson = [
   {
     name: "TCS",
     radius: 15,
-    color: "Yellow",
+    color: "Sun",
     children: [
       {
-        name: "Project1",
+        name: "CM Tool",
         radius: 2,
-        color: "green",
+        color: "P1",
         orbitRadius: 30,
         children: [
           {
-            name: "Tech1",
+            name: "HTML",
             color: "white",
           },
           {
-            name: "Tech1",
+            name: "CSS",
             color: "white",
           },
           {
-            name: "Tech1",
+            name: "JS",
             color: "white",
           },
           {
-            name: "Tech1",
+            name: "D3",
             color: "white",
           },
         ],
       },
       {
-        name: "Project2",
+        name: "Report Gen",
         radius: 3,
-        color: "limegreen",
+        color: "P2",
         orbitRadius: 60,
         children: [
           {
@@ -137,6 +136,7 @@ controls.zoomSpeed = 0.5;
 controls.autoRotateSpeed = 0.3;
 controls.autoRotate = true;
 controls.maxDistance = 220;
+controls.minDistance = 10;
 
 camera.position.set(0, 0, 220);
 camera.lookAt(0, 0, 0);
@@ -164,56 +164,97 @@ function addStars() {
 
 function onClickOnSphere() {
   cameraTarget = this;
+  followZoomLevel = this.zoomLevel <= 1 ? 2 : this.zoomLevel;
   controls.maxDistance = 10 + this.geometry.parameters.radius;
   // controls.minDistance = 0;
   controls.update();
   this.material.color = new THREE.Color("red");
   systemGroup.traverse((object) => {
-    if(object.isSphere) {
-      object.isSelectedSphere=false;
+    if (object.isSphere) {
+      object.isSelectedSphere = false;
     }
   });
-  this.isSelectedSphere=true;
+  this.isSelectedSphere = true;
   setTimeout(() => {
     this.material.color = new THREE.Color(this.color);
     controls.maxDistance = 220;
     controls.update();
   }, 1000);
+  if (this.isStar) {
+    let camPos2 = controls.object.position;
+    object.lookAt(camPos2);
+  }
+}
+
+function makeMaterial(name) {
+  switch (name) {
+    case "Sun":
+      return new THREE.MeshBasicMaterial({
+        map: new THREE.TextureLoader().load("./../assets/Sun.png"),
+      });
+    case "P1":
+      return new THREE.MeshBasicMaterial({
+        map: new THREE.TextureLoader().load("./../assets/P1.png"),
+      });
+    case "P2":
+      return new THREE.MeshBasicMaterial({
+        map: new THREE.TextureLoader().load("./../assets/P2.png"),
+      });
+    default:
+      return new THREE.MeshBasicMaterial({
+        color: name,
+      });
+  }
 }
 
 function makeSphere(radius = 5, color = "yellow", name) {
   const sphereGeo = new THREE.SphereGeometry(radius, 32, 32);
-  const sphereMaterial = new THREE.MeshBasicMaterial({
-    color: color,
-  });
+  const sphereMaterial = makeMaterial(color);
   const sphere = new THREE.Mesh(sphereGeo, sphereMaterial);
   const sphereTitleGeometry = new TextGeometry(name, {
     font: spaceAge,
     size: radius / 2,
     height: radius / 8,
   });
-  const sphereTitleMaterial = new THREE.MeshBasicMaterial({
-    color: "white",
-  });
+  const sphereTitleMaterial = makeMaterial(color);
   const sphereTitleMesh = new THREE.Mesh(
     sphereTitleGeometry,
     sphereTitleMaterial
   );
-  sphereTitleMesh.rotation.x = -90;
-  sphereTitleMesh.position.y = -radius / 2;
+  sphereTitleMesh.position.y = radius + radius / 10;
   sphereTitleMesh.position.x = -radius;
-  sphereTitleMesh.position.z = -radius;
   sphere.add(sphereTitleMesh);
   sphere.name = name;
   sphere.onMouseClick = onClickOnSphere;
-  sphere.isSphere=true;
+  sphere.isSphere = true;
   return sphere;
+}
+
+function resetTarget() {
+  cameraTarget = null;
+  systemGroup.traverse((object) => {
+    if (object.isSphere) {
+      object.isSelectedSphere = false;
+    }
+    if (object.isStar) {
+      let starPos = new THREE.Vector3();
+      object.getWorldPosition(starPos);
+      controls.target = starPos;
+      controls.maxDistance = 220;
+      controls.update();
+    }
+  });
+  controls.update();
 }
 
 function drawSystem() {
   systemJson.forEach((item) => {
     const sphere = makeSphere(item.radius, item.color, item.name);
-    sphere.isStar=true;
+    sphere.isStar = true;
+    sphere.onMouseClick = resetTarget;
+    setTimeout(() => {
+      sphere.lookAt(controls.object.position);
+    }, 100);
     item.children.forEach((subitem, i) => {
       const orbit = buildRing(subitem.orbitRadius, true, 200);
       orbit.position.set(
@@ -234,7 +275,7 @@ function drawSystem() {
       subitem.children.forEach((techsubitem, index) => {
         const innerOrbit = buildRing(
           subitem.radius * (index + 1) * 1.5,
-          true,
+          false,
           200
         );
         innerOrbit.position.set(
@@ -249,8 +290,9 @@ function drawSystem() {
           innerOrbit.position.z
         );
         innerOrbit.isOrbit = true;
+        techSphere.zoomLevel = 20;
         innerOrbit.add(techSphere);
-        innerOrbit.rotation.y =randomIntFromInterval(-20,20)
+        innerOrbit.rotation.y = randomIntFromInterval(-20, 20);
         innerOrbit.rotationSpeed = subitem.children.length - i;
         innerOrbit.clockwise = i % 2 == 0;
         innerSphere.add(innerOrbit);
@@ -258,14 +300,16 @@ function drawSystem() {
 
       innerSphere.color = subitem.color;
       innerSphere.name = subitem.name;
+      innerSphere.zoomLevel = i;
       orbit.add(innerSphere);
-      orbit.rotation.y =randomIntFromInterval(-20,20)
+      orbit.rotation.y = randomIntFromInterval(-20, 20);
       orbit.isOrbit = true;
       orbit.rotationSpeed = item.children.length - i;
       orbit.clockwise = i % 2 === 0;
       sphere.add(orbit);
     });
     sphere.name = item.name;
+    sphere.zoomLevel = 1;
     sphere.color = item.color;
     systemGroup.add(sphere);
   });
@@ -273,8 +317,9 @@ function drawSystem() {
   scene.add(systemGroup);
 }
 
-function randomIntFromInterval(min, max) { // min and max included 
-  return Math.floor(Math.random() * (max - min + 1) + min)
+function randomIntFromInterval(min, max) {
+  // min and max included
+  return Math.floor(Math.random() * (max - min + 1) + min);
 }
 
 function buildRing(orbitRadius, orbitVisible = true, resolution = 200) {
@@ -297,20 +342,24 @@ function buildRing(orbitRadius, orbitVisible = true, resolution = 200) {
 
 function animateRings() {
   const elapsedTime = clock.getElapsedTime();
+  controls.autoRotateSpeed = 0.3;
   systemGroup.traverse((object) => {
     if (object.isOrbit) {
       object.rotation.z =
         (object.clockwise ? -0.1 : 0.1) * object.rotationSpeed * elapsedTime;
-    } else if(object.isSelectedSphere&&!object.isStar) {
+    } else if (object.isSelectedSphere && !object.isStar) {
       let camPos = new THREE.Vector3();
       let sSphere = new THREE.Vector3();
       camera.getWorldPosition(camPos);
+      let camPos2 = controls.object.position;
       object.getWorldPosition(sSphere);
-      controls.maxDistance=Math.abs(camPos.length()-(camPos.length()-sSphere.length()))/followZoomLevel;
+      object.lookAt(camPos2);
+      // object.rotateY(180)
+      controls.maxDistance =
+        Math.abs(
+          camPos.length() - Math.abs(camPos.length() - sSphere.length())
+        ) / followZoomLevel;
       controls.update();
-    }else if(object.isStar){
-      controls.maxDistance=220;
-      // controls.minDistance=100;
     }
   });
 }
