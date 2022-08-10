@@ -78,9 +78,9 @@ const systemJson = [
         ],
       },
       {
-        name: "Project3",
+        name: "CDP-NFR",
         radius: 4,
-        color: "skyblue",
+        color: "P3",
         orbitRadius: 90,
         children: [
           {
@@ -102,10 +102,10 @@ const systemJson = [
         ],
       },
       {
-        name: "Project4",
-        radius: 2,
-        color: "orange",
-        orbitRadius: 125,
+        name: "IPAMS",
+        radius: 4,
+        color: "P4",
+        orbitRadius: 115,
         children: [
           {
             name: "Tech1",
@@ -168,7 +168,7 @@ function onClickOnSphere() {
   controls.maxDistance = 10 + this.geometry.parameters.radius;
   // controls.minDistance = 0;
   controls.update();
-  this.material.color = new THREE.Color("red");
+  this.material.color = new THREE.Color("green");
   systemGroup.traverse((object) => {
     if (object.isSphere) {
       object.isSelectedSphere = false;
@@ -199,6 +199,14 @@ function makeMaterial(name) {
     case "P2":
       return new THREE.MeshBasicMaterial({
         map: new THREE.TextureLoader().load("./../assets/P2.png"),
+      });
+    case "P3":
+      return new THREE.MeshBasicMaterial({
+        map: new THREE.TextureLoader().load("./../assets/P3.png"),
+      });
+    case "P4":
+      return new THREE.MeshBasicMaterial({
+        map: new THREE.TextureLoader().load("./../assets/P4.png"),
       });
     default:
       return new THREE.MeshBasicMaterial({
