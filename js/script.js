@@ -1,6 +1,5 @@
 import * as THREE from "three";
 import { OrbitControls } from "OrbitControls";
-import { promisefy } from "util";
 import { FontLoader } from "fontLoader";
 import { TextGeometry } from "textGeometry";
 
@@ -37,19 +36,19 @@ const systemJson = [
         children: [
           {
             name: "HTML",
-            color: "white",
+            color: "tech",
           },
           {
             name: "CSS",
-            color: "white",
+            color: "tech",
           },
           {
             name: "JS",
-            color: "white",
+            color: "tech",
           },
           {
             name: "D3",
-            color: "white",
+            color: "tech",
           },
         ],
       },
@@ -61,19 +60,19 @@ const systemJson = [
         children: [
           {
             name: "Tech1",
-            color: "white",
+            color: "tech",
           },
           {
             name: "Tech1",
-            color: "white",
+            color: "tech",
           },
           {
             name: "Tech1",
-            color: "white",
+            color: "tech",
           },
           {
             name: "Tech1",
-            color: "white",
+            color: "tech",
           },
         ],
       },
@@ -85,19 +84,19 @@ const systemJson = [
         children: [
           {
             name: "Tech1",
-            color: "white",
+            color: "tech",
           },
           {
             name: "Tech1",
-            color: "white",
+            color: "tech",
           },
           {
             name: "Tech1",
-            color: "white",
+            color: "tech",
           },
           {
             name: "Tech1",
-            color: "white",
+            color: "tech",
           },
         ],
       },
@@ -109,19 +108,19 @@ const systemJson = [
         children: [
           {
             name: "Tech1",
-            color: "white",
+            color: "tech",
           },
           {
             name: "Tech1",
-            color: "white",
+            color: "tech",
           },
           {
             name: "Tech1",
-            color: "white",
+            color: "tech",
           },
           {
             name: "Tech1",
-            color: "white",
+            color: "tech",
           },
         ],
       },
@@ -155,7 +154,7 @@ function addStars() {
   const starMaterial = new THREE.PointsMaterial({
     size: 0.2,
     map: sprite,
-    color: "white",
+    color: "tech",
     transparent: true,
   });
   meshes.star = new THREE.Points(starGeo, starMaterial);
@@ -207,6 +206,10 @@ function makeMaterial(name) {
     case "P4":
       return new THREE.MeshBasicMaterial({
         map: new THREE.TextureLoader().load("./../assets/P4.png"),
+      });
+    case "tech":
+      return new THREE.MeshBasicMaterial({
+        map: new THREE.TextureLoader().load("./../assets/tech.png"),
       });
     default:
       return new THREE.MeshBasicMaterial({
